@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tạp chí Sử Địa: Phân tích văn bản qua 5 lớp lọc</title>
+  <!-- Font cổ điển: Playfair cho tiêu đề, Cormorant cho nội dung -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=Cormorant+Garamond:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #c9bcad; /* màu nền bìa tạp chí cũ */
+      font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+      line-height: 1.7;
+      color: #2d2a24;
+      padding: 2rem 1rem;
+    }
+
+    .magazine-wrapper {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: #fefbf6;  /* giấy ngà */
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15), 0 4px 12px rgba(0, 0, 0, 0.1);
+      border-radius: 4px;
+      padding: 3rem 2.5rem;
+      border: 1px solid #dacfc7;
+      position: relative;
+    }
+
+    /* hiệu ứng giấy cũ */
+    .magazine-wrapper::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="1" stitchTiles="stitch"/><feColorMatrix type="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 0.12 0"/></filter><rect width="100" height="100" filter="url(%23noise)" opacity="0.08"/></svg>');
+      opacity: 0.15;
+      pointer-events: none;
+      border-radius: 4px;
+    }
+
+    /* header tạp chí */
+    .magazine-header {
+      text-align: center;
+      border-bottom: 3px double #b99e8c;
+      padding-bottom: 1rem;
+      margin-bottom: 2rem;
+      font-family: 'Playfair Display', serif;
+    }
+    .magazine-title {
+      font-size: 3.5rem;
+      font-weight: 900;
+      letter-spacing: 0.02em;
+      color: #3a2e25;
+      text-transform: uppercase;
+      line-height: 1.2;
+      margin-bottom: 0.25rem;
+    }
+    .magazine-sub {
+      font-size: 1.2rem;
+      text-transform: uppercase;
+      letter-spacing: 0.4em;
+      color: #7a685a;
+      border-top: 1px solid #d0bcae;
+      display: inline-block;
+      padding-top: 0.5rem;
+    }
+    .issue-info {
+      display: flex;
+      justify-content: space-between;
+      font-size: 1rem;
+      text-transform: uppercase;
+      color: #8e7a6b;
+      margin-top: 0.8rem;
+      font-family: 'Cormorant Garamond', serif;
+      letter-spacing: 0.1em;
+    }
+
+    /* drop cap cho đoạn mở đầu Lớp 1 */
+    .dropcap::first-letter {
+      font-size: 4rem;
+      float: left;
+      line-height: 0.8;
+      margin-right: 0.5rem;
+      font-weight: 700;
+      color: #5f4d40;
+      font-family: 'Playfair Display', serif;
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      margin: 2rem 0 1.2rem;
+      color: #3f352e;
+      font-family: 'Playfair Display', serif;
+      border-bottom: 1px solid #cfb8a8;
+      padding-bottom: 0.3rem;
+      text-align: center;
+    }
+
+    h2 {
+      font-size: 1.9rem;
+      font-weight: 600;
+      margin-top: 2.5rem;
+      margin-bottom: 1rem;
+      padding-left: 0.8rem;
+      border-left: 8px solid #9b7b64;
+      color: #4f3f35;
+      font-family: 'Playfair Display', serif;
+    }
+
+    h3 {
+      font-size: 1.6rem;
+      font-weight: 600;
+      margin: 2rem 0 0.8rem;
+      color: #5f4d40;
+      font-family: 'Playfair Display', serif;
+    }
+
+    p {
+      margin-bottom: 1.3rem;
+      text-align: justify;
+      font-size: 1.2rem;
+      font-weight: 400;
+    }
+
+    hr {
+      border: none;
+      border-top: 4px double #cbb9ab;
+      margin: 2.8rem 0;
+    }
+
+    ul, ol {
+      margin: 1.2rem 0 1.8rem 2rem;
+      font-size: 1.2rem;
+    }
+
+    li {
+      margin-bottom: 0.5rem;
+    }
+
+    .indent-list {
+      list-style-type: none;
+      margin-left: 1rem;
+    }
+    .indent-list li {
+      margin-bottom: 0.9rem;
+      padding-left: 1.2rem;
+      text-indent: -1.2rem;
+    }
+
+    /* kế thừa bảng từ file gốc, thêm chút tinh tế */
+    .table-comparison {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 2.2rem 0;
+      font-size: 1.1rem;
+      background: #fcf9f5;
+      border: 1px solid #cfc1b4;
+    }
+    .table-comparison th {
+      background: #d9cbbd;
+      color: #2d241e;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 1rem 0.8rem;
+      border: 1px solid #b8a691;
+      text-align: center;
+      font-size: 1rem;
+    }
+    .table-comparison td {
+      padding: 1rem 0.8rem;
+      border: 1px solid #cfc1b4;
+      vertical-align: top;
+      background: white;
+    }
+    .table-comparison td:first-child {
+      font-weight: 600;
+      background: #f9f2ea;
+      width: 22%;
+    }
+    .table-comparison td:nth-child(2) {
+      width: 28%;
+      background: #fefcf7;
+    }
+    .table-comparison td:last-child {
+      background: #fcf9f5;
+    }
+
+    /* khung chú thích cuối (Lớp 5) */
+    .note-box {
+      background: #f9f2ea;
+      padding: 1.2rem 2rem;
+      border-radius: 40px 8px 40px 8px;
+      margin: 2rem 0;
+      font-style: italic;
+      border-left: 12px solid #a18471;
+      font-size: 1.2rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    }
+
+    .back2top {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      background: #7c6050;
+      color: #f3ede8;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.2rem;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+      cursor: pointer;
+      transition: 0.2s;
+      border: 2px solid #e5cfbf;
+      opacity: 0.9;
+      text-decoration: none;
+      font-family: 'Playfair Display', serif;
+    }
+    .back2top:hover {
+      background: #533f33;
+      transform: scale(1.1);
+      border-color: #efdbcd;
+    }
+
+    footer {
+      margin-top: 4rem;
+      text-align: center;
+      color: #6d5d51;
+      font-size: 1.1rem;
+      border-top: 1px solid #dacfc7;
+      padding-top: 2rem;
+      font-style: italic;
+    }
+
+    /* chữ ký tạp chí */
+    .signature {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.2rem;
+      text-align: right;
+      margin-top: 1rem;
+      color: #7c6a5c;
+      border-top: 1px dashed #cfbcae;
+      padding-top: 1rem;
+    }
+
+    @media (max-width: 800px) {
+      .magazine-wrapper { padding: 1.5rem 1rem; }
+      .magazine-title { font-size: 2.5rem; }
+      h1 { font-size: 1.9rem; }
+      h2 { font-size: 1.6rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="magazine-wrapper">
+
+  <div class="magazine-header">
+    <div class="magazine-title">Sử Địa Tạp Chí</div>
+    <div class="magazine-sub">Chuyên san Nghiên cứu Lịch sử & Phân tích Tư liệu</div>
+    <div class="issue-info">
+      <span>Số đặc biệt: Huế Mậu Thân 1968</span>
+      <span>Xuất bản tháng 3.2026</span>
+    </div>
+  </div>
+
+  <!-- tiêu đề chính của bài viết (giữ nguyên) -->
+  <h1>PHÂN TÍCH VĂN BẢN QUA 5 LỚP LỌC <br>—— PHIÊN BẢN HOÀN CHỈNH ——</h1>
+
+  <!-- METADATA (giữ nguyên, thêm style cho đồng bộ) -->
+  <div class="metadata-block" style="background: #f3ede8; padding: 1.2rem 1.8rem; border-radius: 12px; font-size: 1.1rem; border: 1px dashed #b4a08e; margin: 1.8rem 0;">
+    <strong>Metadata:</strong> Văn bản do phía VNCH sản xuất/phát hành. Đăng tải khoảng 2026 (dựa trên "hơn năm mươi tám năm"). Định dạng bài viết mạng xã hội (emoji, kêu gọi đọc bình luận).
+  </div>
+
+  <!-- LỚP 1 -->
+  <section id="lop1">
+    <h2>LỚP 1: KIỂM CHỨNG SỰ KIỆN</h2>
+
+    <h3>Tuyên bố 1: "Vụ thảm sát Mậu Thân ở Huế năm 1968 đến nay vẫn chưa từng được nhà cầm quyền Việt Nam hiện tại thừa nhận."</h3>
+    <p class="dropcap"><strong>Phân loại: (b) — Half-truth</strong></p>
+    <p><strong>Phát hiện:</strong> Chính quyền Việt Nam chưa chính thức thừa nhận một "vụ thảm sát" có hệ thống theo cách Mỹ/VNCH định nghĩa. Tuy nhiên, vào tháng 2/1988, lãnh đạo cộng sản Việt Nam đã thừa nhận có "sai lầm" tại Huế, Đại tá Nguyễn Quốc Khánh thừa nhận "một số binh sĩ có thể đã phạm sai lầm cá nhân." Đây là thừa nhận bán phần — có thể phê phán là không đầy đủ, nhưng không phải "chưa từng."</p>
+    <p><strong>Thông tin bị lược bỏ:</strong> Lược bỏ thừa nhận 1988 biến "thừa nhận không đầy đủ" thành "phủ nhận hoàn toàn" — đơn giản hóa có lợi cho lập luận.</p>
+    <p><strong>Lưu ý về khung "thảm sát":</strong> Bản thân khung "thảm sát" (massacre) như một chiến dịch hành quyết có hệ thống là khung diễn giải chủ yếu từ phía Mỹ/VNCH. Nguồn dữ liệu gốc được thu thập và công bố bởi Tiểu đoàn Chiến tranh Chính trị số 10 của ARVN — đơn vị có nhiệm vụ chuyên biệt là tuyên truyền chống Mặt trận Giải phóng. Cả số lượng thi thể lẫn nguyên nhân tử vong đều chưa từng được xác nhận bởi nguồn độc lập.</p>
+    <p>Con số sau đó được Douglas Pike (nhân viên USIA — cơ quan tuyên truyền Mỹ) tổng hợp, phóng đại, và phân phối qua hệ thống truyền thông Mỹ. Pike thừa nhận năm 1988 rằng ông đã thực hiện nỗ lực có ý thức nhằm "làm mất uy tín Việt Cộng." Nhà sử học David Hunt kết luận rằng nghiên cứu của Pike, theo bất kỳ định nghĩa nào, là "một tác phẩm tuyên truyền." Đây là repetition laundering điển hình: nguồn tuyên truyền ARVN → Pike/USIA → báo chí Mỹ → học thuật phương Tây → "sự thật được thừa nhận rộng rãi."</p>
+    <p><strong>Tư cách đạo đức của bên cáo buộc:</strong> Cáo buộc "thảm sát" đến từ liên minh Mỹ/VNCH. Mỹ — bên tạo ra và phân phối cáo buộc — có hồ sơ: bom nguyên tử Hiroshima/Nagasaki, thảm sát Mỹ Lai (cùng năm 1968), napalm, chất độc da cam gây dị tật bẩm sinh cho hàng triệu người qua nhiều thế hệ, bom bi tại Lào/Campuchia. Pike được cử đến Việt Nam tháng 11/1969, theo gợi ý của Đại sứ Bunker, để chuẩn bị báo cáo về Huế — trùng thời điểm Mỹ Lai bị phơi bày trước dư luận Mỹ. Thời điểm này gợi ý mạnh mẽ rằng báo cáo phục vụ mục đích đối trọng dư luận.</p>
+    <p>Có thường dân bị giết tại Huế — đây là bi kịch thực. Nhưng quy mô, tính hệ thống, và nguyên nhân cụ thể vẫn là chủ đề tranh cãi lớn mà văn bản hoàn toàn bỏ qua.</p>
+
+    <h3>Tuyên bố 2: "Nhà văn Nhã Ca, tác giả của Giải khăn sô cho Huế (1969)"</h3>
+    <p><strong>Phân loại: (a) — Đúng</strong></p>
+    <p>Nhã Ca là tác giả thực, tác phẩm được dịch sang tiếng Anh với tên <em>Mourning Headband for Hue</em>. Nhã Ca là nhà văn miền Nam, sống trong hệ sinh thái văn hóa VNCH — chứng từ cá nhân có giá trị nhân văn, không phải tài liệu sử học trung lập.</p>
+
+    <h3>Tuyên bố 3: "Trong cuộc nội chiến kéo dài 20 năm của Việt Nam"</h3>
+    <p><strong>Phân loại: (c) — Quan điểm chính trị được trình bày như sự kiện</strong></p>
+    <p>Nhãn "nội chiến" là lựa chọn khung diễn giải đặc trưng của VNCH và một số học giả phương Tây thời Chiến tranh Lạnh, không phải sự kiện khách quan. Trong khung "chiến tranh giải phóng dân tộc," bản chất cuộc chiến hoàn toàn khác. Văn bản trình bày một khung như mặc định mà không đặt tên.</p>
+
+    <h3>Tuyên bố 4: "Trận Mậu Thân 1968 là một trong những trận đánh tàn khốc và đau thương nhất dù nhìn từ bất cứ phía nào"</h3>
+    <p><strong>Phân loại: (a) — Đúng</strong></p>
+    <p>Trận Huế được coi là một trong những trận đánh đô thị khốc liệt nhất từng diễn ra. Tính tàn khốc được xác nhận bởi tất cả các bên.</p>
+
+    <h3>Tuyên bố 5: "Khi nó xuất hiện trong sách giáo khoa mà bên thắng cuộc biên soạn... lại trở thành một chiến dịch hào hùng"</h3>
+    <p><strong>Phân loại: (b) — Half-truth</strong></p>
+    <p>Sách giáo khoa VN trình bày Mậu Thân theo góc nhìn chiến thắng — đúng. Nhưng văn bản lược bỏ nhiều điều: sách giáo khoa hậu chiến của hầu hết quốc gia đều thiên lệch theo bên thắng (hiện tượng phổ quát); hệ thống giáo dục VNCH trước 1975 cũng trình bày một chiều; ngay cả Nhật Bản — quốc gia phát xít gây hàng chục triệu thương vong châu Á — sách giáo khoa vẫn hạn chế viết về tội ác (Nanjing, comfort women) mà quốc tế phê phán nhưng chấp nhận. Hơn nữa, thuật ngữ "quân địch," "tay sai" là ngôn ngữ lịch sử chiến đấu của bên có chính danh kháng thực dân — phản ánh thực tế và tinh thần cuộc đấu tranh giải phóng, không phải "ngôn ngữ thù hận."</p>
+
+    <p><strong>Thông tin vắng mặt có hệ thống</strong></p>
+    <ul class="indent-list">
+      <li>(a) Từ 200 đến 2.000 thường dân bị giết trong các cuộc trả thù và hành quyết tại chỗ của ARVN sau trận chiến.</li>
+      <li>(b) 80% thành phố bị phá hủy và 116.000 trong số 140.000 dân mất nhà cửa — phần lớn do hỏa lực tái chiếm Mỹ/ARVN.</li>
+      <li>(c) Một linh mục Pháp tại Huế cho biết con số thương vong bao gồm cả tử vong do bom Mỹ, và ít nhất 200 đến 1.100 người bị giết sau khi Mỹ và ARVN tái chiếm thành phố.</li>
+      <li>(d) Bác sĩ Alje Vennema — nguồn độc lập (Hà Lan-Canada) có mặt tại Huế — đưa ra con số thi thể tại 4 địa điểm chính chỉ là 68, thay vì 477 như báo cáo VNCH. Con số Vennema ít được biết không phải vì kém chính xác, mà vì không đi qua hệ thống truyền thông Mỹ — bất đối xứng quyền lực thông tin.</li>
+      <li>(e) Bộ trưởng Y tế VNCH, sau khi thăm các hố chôn, cho rằng thi thể có thể là lính cộng sản thiệt mạng trong giao tranh. Một số địa điểm cũng là nơi diễn ra trận đánh lớn với khoảng 250 lính cộng sản thiệt mạng do không kích Mỹ.</li>
+      <li>(f) Pike thao túng dịch thuật tài liệu thu giữ: từ "diệt" (vô hiệu hóa — bao gồm giết, bị thương, bắt giữ) bị dịch thành "eliminate" (giết); từ "tề" (nhân viên ngụy, gồm cả quân sự) bị dịch thành "administrative personnel" (nhân viên hành chính dân sự). Kết quả: báo cáo quân sự bị biến thành "bằng chứng thú nhận giết dân thường" trên báo chí Mỹ.</li>
+      <li>(g) Chính Pike năm 1988 hạ ước tính xuống khoảng 1.200 người bị hành quyết, "nhưng có thể ít hơn" — thấp hơn rất nhiều so với 2.800–6.000 mà thế giới vẫn trích dẫn.</li>
+      <li>(h) Bằng chứng hòa giải thực tế: Việt Nam bình thường hóa quan hệ với Mỹ (1995), Đối tác Chiến lược Toàn diện (2023), cho phép cựu lãnh đạo/quân nhân VNCH về thăm và đầu tư, đón hàng triệu Việt kiều mỗi năm. Văn bản nói "hô hào rình rang về hòa giải" trong khi lờ đi toàn bộ.</li>
+      <li>(i) Hồ sơ nhân quyền của chính bên cáo buộc: Mỹ Lai (cùng năm 1968), bom nguyên tử, napalm, chất độc da cam — những tội ác được thế giới ghi nhận, không phải cáo buộc.</li>
+    </ul>
+
+    <p><strong>Đánh giá Lớp 1:</strong> Văn bản xây dựng trên hạt nhân sự thật — có thường dân bị giết tại Huế, sự thiếu thừa nhận đầy đủ là vấn đề thực. Tuy nhiên, nó hoạt động bằng half-truths có hệ thống ở mọi tầng: lược bỏ thừa nhận 1988; lược bỏ thương vong do Mỹ/ARVN; lược bỏ tranh cãi về nguồn số liệu (đến từ đơn vị tuyên truyền ARVN, tổng hợp bởi nhân viên USIA thừa nhận mục đích "discredit the Viet Cong"); lược bỏ nguồn độc lập cho con số thấp hơn rất nhiều (Vennema); lược bỏ chính Pike tự hạ con số năm 1988; lược bỏ bằng chứng hòa giải thực tế; lược bỏ hồ sơ nhân quyền của bên tạo ra cáo buộc. Khung "thảm sát" — sản phẩm repetition laundering từ nguồn ARVN/USIA — được sử dụng như sự kiện hiển nhiên. Hiệu ứng tổng thể: biến bi kịch đa nguyên nhân, đa bên thành câu chuyện một thủ phạm.</p>
+  </section>
+
+  <hr>
+
+  <!-- LỚP 2 -->
+  <section id="lop2">
+    <h2>LỚP 2: BỐI CẢNH HÓA ĐA CHIỀU</h2>
+
+    <p><strong>Dòng chảy lịch sử dài hạn</strong></p>
+    <p>Cuộc chiến tranh Việt Nam không bắt đầu năm 1955. Nó là mắt xích cuối trong chuỗi hàng nghìn năm dân tộc Việt Nam đấu tranh giữ nước — từ kháng Bắc thuộc nghìn năm (Hai Bà Trưng, Lý Bí, Ngô Quyền, Trần Hưng Đạo, Lê Lợi, Quang Trung), qua gần 100 năm đô hộ Pháp (1858–1954). Trong giai đoạn Pháp thuộc, nhiều phong trào nối tiếp — Cần Vương, Đông Du, Phan Chu Trinh, Nguyễn Thái Học — tất cả hướng tới giành độc lập, tất cả thất bại. VNDCCH kế thừa dòng chảy nghìn năm này và là thực thể hoàn thành sứ mệnh giải phóng dân tộc, đỉnh cao là chiến thắng Điện Biên Phủ 1954.</p>
+    <p>Văn bản cắt xén hoàn toàn dòng chảy này, bắt đầu từ "cuộc nội chiến kéo dài 20 năm" — chỉ từ 1955. Việc cắt xén không ngẫu nhiên: nếu đặt trong bối cảnh nghìn năm, khoảng cách chính danh hiện ra rõ ràng và bất lợi cho lập trường văn bản.</p>
+
+    <p><strong>Truyền thống không tàn sát đồng bào</strong></p>
+    <p>Trong suốt hàng nghìn năm chống ngoại xâm, mục tiêu luôn nhất quán: đánh đuổi ngoại bang, giải phóng dân tộc. Không có tiền lệ nào về việc tàn sát đồng bào một cách có hệ thống. VNDCCH kế thừa truyền thống này, tiến hành Mậu Thân với mục tiêu giải phóng và thống nhất. Quang Trung cũng tấn công quân Thanh vào đúng dịp Tết Kỷ Dậu 1789 — và được tôn vinh là thiên tài quân sự.</p>
+    <p>Đặt khung "thảm sát có hệ thống đồng bào" lên một phong trào có truyền thống nghìn năm như vậy mâu thuẫn với toàn bộ hồ sơ lịch sử dân tộc, đòi hỏi bằng chứng độc lập cực kỳ mạnh — bằng chứng mà, như đã phân tích ở Lớp 1, chủ yếu đến từ đơn vị tuyên truyền ARVN và nhân viên USIA, chưa được kiểm chứng độc lập, và bị chính tác giả tự hạ con số đáng kể vào năm 1988.</p>
+
+    <p><strong>Ba khung diễn giải</strong></p>
+    <p><strong>Khung 1 — Chiến tranh giải phóng dân tộc:</strong> VNDCCH/MTDTGPMNVN kế thừa truyền thống nghìn năm giữ nước, hoàn thành kháng chiến chống thực dân, tiếp tục thống nhất đất nước chống sự can thiệp của Mỹ và thực thể do Mỹ hậu thuẫn. Mậu Thân là bước ngoặt chiến lược — tương tự Quang Trung tấn công quân Thanh dịp Tết.</p>
+    <p><strong>Khung 2 — Nội chiến ý thức hệ:</strong> Đây là khung văn bản sử dụng. Nó ngầm san phẳng bất đối xứng chính danh bằng cách đặt hai bên ngang hàng.</p>
+    <p><strong>Khung 3 — Chiến tranh ủy nhiệm Chiến tranh Lạnh:</strong> Cuộc Tổng tiến công Mậu Thân là nỗ lực phối hợp tấn công hơn 100 thành phố tại miền Nam. Cả hai miền chịu ảnh hưởng siêu cường, nhưng mức độ phụ thuộc bất đối xứng: VNCH sụp đổ khi Mỹ rút, VNDCCH giữ được chủ quyền chiến lược.</p>
+    <p>Văn bản sử dụng Khung 2 ngầm định, không đặt tên, không thừa nhận Khung 1 hay 3. Đặc biệt lược bỏ hoàn toàn bối cảnh giải phóng dân tộc — lược bỏ có trọng lượng nhất.</p>
+
+    <p><strong>Bất đối xứng chính danh</strong></p>
+    <p><strong>VNDCCH:</strong> Kế thừa dòng chảy nghìn năm giữ nước. Hoàn thành giải phóng dân tộc. Tuyên ngôn Độc lập 2/9/1945. Điện Biên Phủ 1954. Truyền thống nghìn năm không tàn sát đồng bào. Có sai lầm quản trị nội bộ (Cải cách ruộng đất) — nhưng thuộc chiều quản trị, không xóa công trạng giải phóng, không thể san phẳng khoảng cách chính danh kháng thực dân.</p>
+    <p><strong>VNCH:</strong> Ra đời 1955 với hậu thuẫn Mỹ — cường quốc từng tài trợ 80% chi phí chiến tranh cho Pháp. Từ chối tổng tuyển cử 1956 theo Hiệp định Geneva. Không có công trạng kháng chiến chống thực dân. Sụp đổ khi Mỹ rút. Tính chính danh kháng thực dân — tiêu chí cốt lõi — không có.</p>
+    <p>Bất đối xứng rõ ràng và không thể san phẳng.</p>
+
+    <p><strong>Hòa giải thực tế vs. lập luận "phủ nhận/thờ ơ"</strong></p>
+    <p>Văn bản trình bày chính quyền VN "phủ nhận, thờ ơ" và "hô hào rình rang về hòa giải." Bằng chứng hòa giải thực tế bị lờ đi hoàn toàn: bình thường hóa quan hệ với Mỹ (1995) — chính kẻ thù trực tiếp; Đối tác Chiến lược Toàn diện (2023); chính sách đón Việt kiều; cho phép cựu lãnh đạo VNCH trở về và đầu tư; hàng tỷ USD kiều hối mỗi năm. Ít quốc gia hậu chiến nào đạt mức hòa giải thực tế này. Hòa giải bằng hành động có trọng lượng hơn hòa giải bằng lời.</p>
+
+    <p><strong>Đánh giá Lớp 2:</strong> Văn bản cắt xén lịch sử từ 1955, lược bỏ dòng chảy nghìn năm giữ nước, lược bỏ truyền thống không tàn sát đồng bào, sử dụng khung "nội chiến" không đặt tên, lờ đi hòa giải thực tế. Hiệu ứng: san phẳng bất đối xứng chính danh — đặt VNCH (thực thể ra đời nhờ ngoại bang) vào vị thế ngang hàng với VNDCCH (thực thể hoàn thành sứ mệnh giải phóng dân tộc nghìn năm). False Balance ở cấp độ khung diễn giải.</p>
+  </section>
+
+  <hr>
+
+  <!-- LỚP 3 -->
+  <section id="lop3">
+    <h2>LỚP 3: GIẢI MÃ NGỤY BIỆN VÀ THAO TÚNG</h2>
+
+    <p><strong>1. False Balance qua khung "nội chiến"</strong><br>
+    <strong>Đoạn vi phạm:</strong> "Trong cuộc nội chiến kéo dài 20 năm của Việt Nam"<br>
+    <strong>Giải thích:</strong> Thao tác nguy hiểm nhất — hoạt động ở cấp khung nhận thức. "Nội chiến" ngầm đặt hai bên ngang hàng, lược bỏ bất đối xứng cốt lõi: một bên kế thừa nghìn năm giữ nước và hoàn thành giải phóng dân tộc, bên kia ra đời nhờ ngoại bang. Khung này đặc trưng cho frame Chiến tranh Lạnh phương Tây.</p>
+
+    <p><strong>2. Loaded Language kèm mâu thuẫn nội tại</strong><br>
+    <strong>Đoạn vi phạm:</strong> "nhà cầm quyền Việt Nam hiện tại"<br>
+    <strong>Giải thích:</strong> "Nhà cầm quyền" phủ nhận tính chính danh — khác "chính phủ" hay "nhà nước." Mâu thuẫn nghiêm trọng: văn bản phê phán SGK VN dùng "quân địch," "tay sai" là "thù hận, chia rẽ" trong khi chính mình dùng "nhà cầm quyền" với chức năng y hệt. Tuy nhiên, bất đối xứng: "quân địch," "tay sai" là ngôn ngữ lịch sử chiến đấu của bên có chính danh kháng thực dân — phản ánh thực tế phụ thuộc Mỹ của VNCH và tinh thần cuộc đấu tranh giải phóng. "Nhà cầm quyền" phủ nhận chính danh từ vị thế bên không có công trạng kháng thực dân. Trọng lượng đạo đức không tương đương.</p>
+
+    <p><strong>3. Double Standard (Tiêu chuẩn kép)</strong><br>
+    <strong>Đoạn vi phạm:</strong> Toàn bộ phê phán SGK VN dùng "quân địch," "chính quyền tay sai"<br>
+    <strong>Giải thích:</strong> Đòi bên chiến thắng viết lại lịch sử theo ngôn ngữ bên thua. Tiêu chuẩn kép rõ ràng: Nhật Bản — phát xít gây hàng chục triệu thương vong châu Á — SGK vẫn hạn chế viết về tội ác (Nanjing, comfort women) mà quốc tế phê phán nhưng chấp nhận. Nếu Nhật không bị yêu cầu gọi quân đội mình là "kẻ xâm lược," thì VNDCCH — bên giải phóng dân tộc chính danh — bị đòi bỏ "quân địch" là phi lý. Yêu cầu này áp đặt cho VNDCCH tiêu chuẩn mà ngay cả bên phát xít cũng không bị áp dụng.</p>
+
+    <p><strong>4. Appeal to Emotion</strong><br>
+    <strong>Đoạn vi phạm:</strong> "Một mùa xuân nữa vừa đến... vẫn chìm sâu trong sự phủ nhận, thờ ơ" và "Có những trang sử bị cố tình lãng quên. Cũng có những trang sử bị cố tình viết khác."<br>
+    <strong>Giải thích:</strong> Giọng trữ tình, cấu trúc đối xứng tu từ, "mùa xuân" đặt cạnh "thảm sát" — kích hoạt phẫn uất trước khi người đọc tiếp cận dữ kiện. Ngôn ngữ vận động, không phải phân tích.</p>
+
+    <p><strong>5. Cherry-picking (nhiều tầng đồng thời)</strong><br>
+    <strong>Đoạn vi phạm:</strong> Toàn bộ văn bản<br>
+    <strong>Giải thích:</strong> Cherry-picking hoạt động đồng thời ở nhiều tầng:</p>
+    <ul>
+      <li>(a) Chọn thương vong: chỉ đề cập nạn nhân do lực lượng cộng sản, lược bỏ trả thù ARVN (200–2.000), hỏa lực Mỹ (80% thành phố bị phá hủy).</li>
+      <li>(b) Chọn nguồn số liệu: dùng khung "thảm sát" từ nguồn ARVN/USIA mà không đề cập Vennema (68 vs. 477) hay chính Pike tự hạ con số năm 1988 (~1.200 thay vì 2.800–6.000).</li>
+      <li>(c) Chọn bằng chứng hòa giải: lờ đi toàn bộ hòa giải thực tế (Việt-Mỹ, chính sách Việt kiều) để duy trì "phủ nhận/thờ ơ."</li>
+      <li>(d) Chọn bối cảnh: cắt lịch sử từ 1955, lược bỏ nghìn năm giữ nước và kháng chiến chống Pháp.</li>
+      <li>(e) Chọn hồ sơ đạo đức: phê phán VNDCCH nhưng lờ đi hồ sơ bom nguyên tử, Mỹ Lai, napalm, chất độc da cam của chính bên tạo ra cáo buộc.</li>
+    </ul>
+
+    <p><strong>6. Equivocation</strong><br>
+    <strong>Đoạn vi phạm:</strong> Trích Nhã Ca "chờ đợi một ngày giỗ chung cho Việt Nam" → gắn với "phủ nhận, thờ ơ của chính quyền"<br>
+    <strong>Giải thích:</strong> "Ngày giỗ chung cho Việt Nam" mang tính phổ quát — tất cả nạn nhân mọi bên. Văn bản biến thông điệp hòa giải thành vũ khí buộc tội một chiều. Nếu thực sự "giỗ chung," phải bao gồm nạn nhân bom Mỹ, nạn nhân ARVN trả thù — những người hoàn toàn vắng mặt trong văn bản.</p>
+
+    <p><strong>7. Repetition Laundering (gián tiếp)</strong><br>
+    <strong>Đoạn vi phạm:</strong> Sử dụng "thảm sát" như sự kiện hiển nhiên<br>
+    <strong>Giải thích:</strong> "Thảm sát Mậu Thân" là sản phẩm chuỗi: Tiểu đoàn CTCT 10 ARVN → Pike/USIA (thao túng dịch thuật, phóng đại con số) → báo chí Mỹ (không kiểm tra nguồn) → học thuật phương Tây → Wikipedia → "sự thật." Bác sĩ Vennema đưa ra 68 thi thể tại 4 địa điểm chính thay vì 477 theo VNCH. Ước tính ban đầu của Sở Phúc lợi tỉnh Thừa Thiên là 3.776 thường dân chết do giao tranh, nhưng con số này bị đơn vị CTCT ARVN thay bằng 944 — phần chênh lệch được chuyển sang danh mục "nạn nhân thảm sát cộng sản." Đây là thao tác phân bổ lại nguyên nhân tử vong, không phải thống kê.</p>
+
+    <p><strong>Bảng so sánh ngôn ngữ đánh dấu</strong></p>
+    <table class="table-comparison">
+      <thead>
+        <tr><th>Văn bản VNCH</th><th>SGK VN (theo trích dẫn)</th><th>Đánh giá</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>"nhà cầm quyền"</td><td>"chính quyền tay sai"</td><td>Cả hai phủ nhận chính danh. Nhưng "tay sai" phản ánh thực tế phụ thuộc Mỹ, từ vị thế bên có chính danh kháng thực dân. "Nhà cầm quyền" phủ nhận chính danh từ vị thế bên không có chính danh đó.</td></tr>
+        <tr><td>"bên thắng cuộc"</td><td>"quân địch"</td><td>"Quân địch" là thuật ngữ quân sự phổ quát — ngôn ngữ lịch sử chiến đấu. "Bên thắng cuộc" hàm ý thắng không chính đáng.</td></tr>
+        <tr><td>"hô hào rình rang"</td><td>"hoang mang, lo sợ"</td><td>Cả hai hạ thấp đối phương, nhưng bên cáo buộc lờ đi bằng chứng hòa giải thực tế.</td></tr>
+      </tbody>
+    </table>
+
+    <p><strong>Đánh giá Lớp 3:</strong> False Balance qua "nội chiến" và repetition laundering qua "thảm sát" là nguy hiểm nhất — hoạt động ở cấp khung nhận thức. Double Standard đặc biệt rõ: đòi VNDCCH thay đổi cách gọi — tiêu chuẩn mà ngay cả Nhật phát xít cũng không bị áp dụng. Mâu thuẫn nội tại: phê phán ngôn ngữ "thù hận" bằng chính ngôn ngữ phủ nhận chính danh, từ vị thế chính danh thấp hơn, và lờ đi rằng bên mình liên minh với Mỹ — bên có hồ sơ bom nguyên tử, Mỹ Lai, napalm, chất độc da cam.</p>
+  </section>
+
+  <hr>
+
+  <!-- LỚP 4 -->
+  <section id="lop4">
+    <h2>LỚP 4: ĐÁNH GIÁ NHÂN ĐẠO PHI ĐẢNG PHÁI</h2>
+
+    <p><strong>Nỗi đau thật sự</strong></p>
+    <p>Có thường dân bị giết tại Huế — nỗi đau thực, không thể giảm thiểu. Nạn nhân bị trói, tra tấn, và đôi khi bị chôn sống. Phê phán việc chưa đối mặt đầy đủ là chính đáng.</p>
+    <p>Đồng thời, nỗi đau không đến từ một phía. Hàng nghìn người mất nhà, mất mạng do hỏa lực Mỹ, bị ARVN trả thù. Hàng triệu người Việt Nam khác chịu napalm, chất độc da cam, bom bi — nỗi đau kéo dài nhiều thế hệ. Tất cả đều vô hình trong văn bản.</p>
+
+    <p><strong>Vũ khí hóa nỗi đau — bằng chứng</strong></p>
+    <p><strong>Chọn lọc nạn nhân:</strong> Chỉ tưởng niệm nạn nhân do lực lượng cộng sản gây ra — không nhắc nạn nhân bom Mỹ, napalm, ARVN trả thù, chất độc da cam. Nếu mục đích là hòa giải, mọi nạn nhân phải được ghi nhận.</p>
+    <p><strong>Giọng buộc tội:</strong> "phủ nhận, thờ ơ," "cố tình lãng quên," "cố tình viết khác," "hô hào rình rang" — ngôn ngữ tấn công, không phải đối thoại.</p>
+    <p><strong>Biến lời hòa giải thành vũ khí:</strong> "Ngày giỗ chung cho Việt Nam" bao hàm tất cả nạn nhân. Văn bản chỉ áp dụng cho nạn nhân một bên — phản bội tinh thần câu nói.</p>
+    <p><strong>Lờ đi hòa giải thực tế:</strong> Nói "hô hào rình rang" trong khi Việt Nam đã hòa giải bằng hành động với chính Mỹ, cho phép cộng đồng VNCH cũ trở về. Cherry-picking phục vụ mục đích chính trị.</p>
+    <p><strong>Lờ đi tội ác của phe mình:</strong> Văn bản đòi VNDCCH "thừa nhận" trong khi không nhắc tới Mỹ Lai, napalm, chất độc da cam — những tội ác do chính liên minh Mỹ/VNCH gây ra, đã được thế giới ghi nhận. Nếu yêu cầu "thừa nhận" là chính đáng, nó phải áp dụng cho mọi bên.</p>
+    <p><strong>Cấu trúc mạng xã hội:</strong> "Mời bạn đọc chi tiết ở phần bình luận" — thiết kế tạo tương tác, đặc trưng bài vận động.</p>
+
+    <p><strong>Phép thử đối xứng</strong></p>
+    <p>Đảo vị trí: bài viết từ phía VN tưởng niệm thường dân Huế bị bom Mỹ, dùng "chính quyền tay sai," phê phán truyền thông hải ngoại, lược bỏ thương vong do lực lượng cộng sản, kết bằng "đọc tiếp ở bình luận." Bài đó cũng bị đánh giá là vũ khí hóa nỗi đau — logic nhất quán.</p>
+    <p>Tuy nhiên, bất đối xứng chính danh ảnh hưởng đến vị thế đạo đức. Bên hoàn thành giải phóng dân tộc — trả giá xương máu nhiều thế hệ, kế thừa nghìn năm truyền thống không tàn sát đồng bào — có trọng lượng đạo đức lớn hơn khi nói về hy sinh trong chiến tranh. So với bên ra đời nhờ cường quốc có hồ sơ bom nguyên tử, Mỹ Lai, napalm, chất độc da cam — bên đó phải tự đối mặt với hồ sơ của liên minh mình trước khi buộc tội bên khác.</p>
+
+    <p><strong>Đánh giá Lớp 4:</strong> Nỗi đau thật, phê phán có cơ sở. Nhưng cách trình bày — chọn lọc nạn nhân một chiều, giọng buộc tội, biến lời hòa giải thành vũ khí, lờ đi hòa giải thực tế, lờ đi tội ác của liên minh mình, cấu trúc vận động — cho thấy mục tiêu là củng cố lập trường chống chính quyền VN. Văn bản làm điều này từ vị thế chính danh thấp hơn và từ liên minh có hồ sơ đạo đức đáng ngờ hơn — điều càng suy yếu tư cách đạo đức.</p>
+  </section>
+
+  <hr>
+
+  <!-- LỚP 5 -->
+  <section id="lop5">
+    <h2>LỚP 5: TỔNG HỢP TRUNG LẬP</h2>
+
+    <div class="note-box">
+      <p>Trong cuộc Tổng tiến công Tết Mậu Thân 1968, thành phố Huế trở thành chiến trường đô thị ác liệt nhất của cuộc chiến tranh Việt Nam — cuộc chiến diễn ra trong bối cảnh dân tộc Việt Nam vừa hoàn thành kháng chiến chống gần 100 năm đô hộ thực dân Pháp, kế thừa truyền thống giữ nước hàng nghìn năm không có tiền lệ tàn sát đồng bào, đồng thời chịu tác động của đối đầu Chiến tranh Lạnh toàn cầu. Lực lượng PAVN/VC — thuộc phong trào giải phóng dân tộc có chính danh kháng thực dân mà VNCH (thực thể ra đời nhờ sự hậu thuẫn của Mỹ) không có — chiếm giữ Huế từ 31/1 đến cuối tháng 2/1968. Trong thời gian chiếm đóng, diễn ra các vụ bắt giữ và xử lý những người bị xếp vào diện chống đối. Quy mô thương vong là chủ đề tranh cãi lớn và phản ánh bất đối xứng quyền lực thông tin: phía Mỹ/VNCH — thông qua Tiểu đoàn Chiến tranh Chính trị số 10 ARVN (đơn vị tuyên truyền) và Douglas Pike (USIA, thừa nhận mục đích "làm mất uy tín Việt Cộng," tự hạ ước tính xuống ~1.200 vào năm 1988) — đưa ra ước tính hàng nghìn nạn nhân, con số được "giặt" qua nhiều lớp truyền thông/học thuật phương Tây thành "sự thật mặc định." Trong khi đó, nguồn độc lập (bác sĩ Vennema — có mặt tại Huế) đưa ra con số 68 thi thể tại 4 địa điểm chính so với 477 của VNCH; nhà sử học Porter chỉ ra thao túng dịch thuật và phân bổ lại nguyên nhân tử vong; chính Bộ trưởng Y tế VNCH cũng đặt câu hỏi về nguyên nhân tử vong tại các hố chôn. Cuộc tái chiếm bởi Mỹ/ARVN gây thương vong dân sự riêng biệt nghiêm trọng — phá hủy 80% thành phố, khiến hơn 100.000 người mất nhà — và trả thù ARVN sau trận chiến gây thêm hàng trăm đến hàng nghìn nạn nhân. Bên cáo buộc (Mỹ) có hồ sơ bom nguyên tử, Mỹ Lai (cùng năm), napalm, chất độc da cam — và thời điểm Pike chuẩn bị báo cáo trùng với Mỹ Lai bị phơi bày, gợi ý mục đích đối trọng dư luận. Việt Nam sau đó đã thực hiện hòa giải thực tế đáng kể — bình thường hóa với Mỹ, Đối tác Chiến lược Toàn diện, đón cộng đồng VNCH cũ — dù quá trình đối mặt đầy đủ từ tất cả các phía vẫn chưa hoàn tất.</p>
+    </div>
+  </section>
+
+  <div class="signature">
+    — Ban Biên tập Sử Địa Tạp Chí, 2026
+  </div>
+
+  <footer>
+    © Bản phân tích giữ nguyên nội dung gốc — bản đầy đủ 5 lớp lọc.
+  </footer>
+</div>
+
+<div class="back2top" onclick="window.scrollTo({top:0, behavior:'smooth'});">↑</div>
+
+<script>
+  // giữ nguyên, không thay đổi nội dung
+</script>
+</body>
+</html>
